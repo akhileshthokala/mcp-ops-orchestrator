@@ -1,0 +1,59 @@
+{
+  "customers": [
+    {
+      "id": "CUST-001",
+      "name": "Acme Corp",
+      "tier": "enterprise",
+      "primary_contact": "Jane Doe",
+      "email": "jane.doe@acme.example.com",
+      "phone": "+1-415-555-0142",
+      "sla_response_hours": 4,
+      "account_manager": "Priya Patel",
+      "industry": "Manufacturing"
+    },
+    {
+      "id": "CUST-002",
+      "name": "Globex Industries",
+      "tier": "enterprise",
+      "primary_contact": "Hank Scorpio",
+      "email": "hank@globex.example.com",
+      "phone": "+1-212-555-0199",
+      "sla_response_hours": 4,
+      "account_manager": "Marcus Lee",
+      "industry": "Energy"
+    },
+    {
+      "id": "CUST-003",
+      "name": "Initech Systems",
+      "tier": "mid-market",
+      "primary_contact": "Peter Gibbons",
+      "email": "peter@initech.example.com",
+      "phone": "+1-512-555-0177",
+      "sla_response_hours": 12,
+      "account_manager": "Priya Patel",
+      "industry": "Software"
+    },
+    {
+      "id": "CUST-004",
+      "name": "Soylent Foods",
+      "tier": "smb",
+      "primary_contact": "Thorn Heston",
+      "email": "thorn@soylent.example.com",
+      "phone": "+1-718-555-0123",
+      "sla_response_hours": 24,
+      "account_manager": "Marcus Lee",
+      "industry": "Food & Beverage"
+    },
+    {
+      "id": "CUST-005",
+      "name": "Umbrella Logistics",
+      "tier": "enterprise",
+      "primary_contact": "Ada Wong",
+      "email": "ada@umbrella.example.com",
+      "phone": "+1-202-555-0188",
+      "sla_response_hours": 2,
+      "account_manager": "Priya Patel",
+      "industry": "Logistics"
+    }
+  ]
+}
