@@ -2,7 +2,17 @@
 
 A multi-agent workflow where Claude orchestrates three MCP tool servers to handle an enterprise shipment-exception scenario end-to-end. Human approval gates the final outgoing email.
 
-This mirrors the kind of workflow a logistics ops team at a FedEx, UPS, or United Airlines would automate — and the kind of system an Anthropic Forward Deployed Engineer would build for that customer.
+This mirrors the kind of workflow an enterprise logistics operations team might automate, and the kind of system an AI solutions engineer would build with clear tool boundaries and human approval gates.
+
+## Resume Claim Mapping
+
+This repo is the MCP/tool-calling companion to the RAG portfolio project. It demonstrates MCP subprocess servers, Claude tool selection, human approval gates, and structured run logs. See [docs/portfolio-claim-map.md](docs/portfolio-claim-map.md) for how it supports the enterprise AI assistant resume bullet.
+
+## What Was Just Added
+
+- Added claim-mapping documentation that explains how this repo complements the RAG project.
+- Added a native cloud validation plan for a future Cloud Run Job / Secret Manager smoke test.
+- Neutralized public-facing wording so the repo stays employer- and customer-safe.
 
 ## Architecture
 
@@ -142,8 +152,13 @@ mcp-ops-orchestrator/
 
 ## Future work
 
+- Native cloud smoke test using a Cloud Run Job and Secret Manager.
 - Async tool calls when independent (e.g. lookup + read prior tickets in parallel).
 - Per-tool error retry with exponential backoff.
 - Replay mode that reruns a `run.jsonl` against a different model for A/B comparison.
 - Web UI for the HITL step so it's not CLI-bound.
 - Add a fourth tool (`send_email`) that's gated behind HITL approval rather than gating the draft itself, to model the action / preview split cleanly.
+
+## Public-Safety Note
+
+All CRM records, ticket records, shipment IDs, and customer contacts are synthetic. Do not connect this public repo to employer systems, customer CRMs, production ticketing, email senders, or private datasets.
