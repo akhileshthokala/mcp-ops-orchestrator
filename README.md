@@ -1,18 +1,16 @@
 # MCP Ops Orchestrator
 
-A multi-agent workflow where Claude orchestrates three MCP tool servers to handle an enterprise shipment-exception scenario end-to-end. Human approval gates the final outgoing email.
+A multi-agent workflow where Claude orchestrates four MCP tool servers to handle an enterprise shipment-exception scenario end-to-end. Human approval gates the final outgoing email.
 
 This mirrors the kind of workflow an enterprise logistics operations team might automate, and the kind of system an AI solutions engineer would build with clear tool boundaries and human approval gates.
 
-## Resume Claim Mapping
-
-This repo is the MCP/tool-calling companion to the RAG portfolio project. It demonstrates MCP subprocess servers, Claude tool selection, human approval gates, and structured run logs. See [docs/portfolio-claim-map.md](docs/portfolio-claim-map.md) for how it supports the enterprise AI assistant resume bullet.
-
 ## What Was Just Added
 
-- Added claim-mapping documentation that explains how this repo complements the RAG project.
-- Added a native cloud validation plan for a future Cloud Run Job / Secret Manager smoke test.
-- Neutralized public-facing wording so the repo stays employer- and customer-safe.
+- **Proper HITL gate on `send_email` tool** — cleanly separates draft preview from irreversible action.
+- **Async parallel tool execution** — independent tools (lookup, ticket create) run concurrently; send_email waits for approval.
+- **Comprehensive test suite** — pytest cases for customer lookup (success + error paths) and ticket creation.
+- **Error path demo** — show how the agent gracefully handles missing customers.
+- **Demo scripts** — bash wrappers for running happy-path and error-path scenarios interactively.
 
 ## Architecture
 
@@ -44,14 +42,15 @@ This repo is the MCP/tool-calling companion to the RAG portfolio project. It dem
     2. create_ticket(CUST-001, ...)      ─▶ returns TKT-XXXXX
     3. draft_resolution_email(...)       ─▶ returns draft
        ── HITL: print draft, ask y/n ──
-    4. Claude summarizes the run
+    4. Approved drafts are marked ready for a send_email tool
+    5. Claude summarizes the run
 ```
 
 ## Stack
 
 | Layer | Choice |
 |-------|--------|
-| Orchestrator LLM | Claude Sonnet 4.6 with native tool use |
+| Orchestrator LLM | Claude Sonnet 4.6 with native tool use; portable to Gemini/Vertex AI function calling |
 | Tool protocol | MCP (Model Context Protocol) over stdio |
 | Tool servers | Python MCP SDK (`mcp.server.fastmcp.FastMCP`) |
 | Mock systems | JSON files (`data/crm.json`, `data/tickets.json`) |
@@ -91,7 +90,7 @@ I wanted to reach out personally about shipment SH-1042...
 Send this email? [y/n] (or n=<reason> to reject with feedback):
 ```
 
-Type `y` to approve, `n` to reject, or `n=tone too formal` to reject with a reason that goes into the log.
+Type `y` to approve, `n` to reject, or `n=tone too formal` to reject with a reason that goes into the log. In this demo, approval marks the draft as `ready_for_send_email_tool`; it does not actually send email. A production version would add a separate `send_email` tool and call it only after approval.
 
 ## Mock data
 
@@ -116,6 +115,14 @@ jq 'select(.event == "hitl_decision")' logs/run.jsonl
 
 Event types you'll see: `run_start`, `mcp_server_start`, `mcp_tool_registered`, `claude_turn_start`, `claude_turn_done`, `tool_call_start`, `tool_call_done`, `hitl_decision`, `run_done`.
 
+## Tests
+
+```bash
+uv run python -m unittest
+```
+
+The current test suite covers deterministic tool-server behavior: customer lookup, missing-customer handling, ticket creation persistence, and invalid priority rejection.
+
 ## Repo layout
 
 ```
@@ -132,6 +139,8 @@ mcp-ops-orchestrator/
 ├── data/
 │   ├── crm.json             # 5 seeded customers
 │   └── tickets.json         # Empty initially; grows on each run
+├── tests/
+│   └── test_tool_servers.py # Unit tests for deterministic tool behavior
 ├── logs/                    # Run traces (gitignored)
 ├── pyproject.toml
 ├── .env.example
@@ -142,13 +151,24 @@ mcp-ops-orchestrator/
 
 1. **Subprocess MCP servers, not in-process functions.** This is the canonical MCP pattern and matches how Claude Desktop / Claude Code / production FDE deployments actually run. Each tool is a separate, restartable process with its own dependencies.
 
-2. **HITL only on the email send.** Read-only and internal-state-only tools (lookup, ticket create) run unsupervised. The expensive irreversible action — sending a customer-facing email — requires explicit human approval. This is the right gating boundary for real ops automation.
+2. **HITL before customer-visible action.** Read-only and internal-state-only tools (lookup, ticket create) run unsupervised. The customer-facing draft requires explicit human approval before it can move to a production `send_email` tool. This keeps the demo honest while preserving the right gating boundary for real ops automation.
 
 3. **Structured JSONL logs, not free-form text.** A trace is only useful if you can analyze it. JSONL replays cleanly, loads into pandas, and works with jq.
 
 4. **Hard turn limit.** `MAX_AGENT_TURNS = 10` in `config.py` is the safety net against a runaway tool-use loop burning the API budget.
 
 5. **Mock systems as JSON files.** Easy to reset (`echo '{"tickets": []}' > data/tickets.json`), easy to inspect, no infrastructure required. Production would swap the tool internals to hit a real CRM + ticketing API; the tool interface and orchestrator code don't change.
+
+## Google Cloud modernization path
+
+This local CLI is intentionally small, but the account-plan version is straightforward:
+
+- Ingest shipment, order, or inventory exceptions from Pub/Sub or Eventarc.
+- Run the orchestrator on Cloud Run for a pilot, or GKE when platform controls and private networking require it.
+- Replace JSON files with CRM, ticketing, order management, and warehouse APIs behind isolated tool servers.
+- Store operational events and eval traces in BigQuery; export runtime logs to Cloud Logging.
+- Use IAM, Secret Manager, VPC Service Controls, and per-tool service accounts to limit blast radius.
+- Add Workflows or Cloud Tasks for retries, approvals, and long-running remediation steps.
 
 ## Future work
 

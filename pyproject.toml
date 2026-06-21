@@ -1,7 +1,7 @@
 [project]
 name = "mcp-ops-orchestrator"
 version = "0.1.0"
-description = "Multi-agent ops orchestrator: Claude drives 3 MCP tools to handle shipment-exception workflows"
+description = "Multi-agent ops orchestrator: Claude drives 4 MCP tools to handle shipment-exception workflows with HITL approval gates"
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "anthropic>=0.40.0",
@@ -10,7 +10,9 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = []
+dev = [
+    "pytest>=7.4.0",
+]
 
 [build-system]
 requires = ["hatchling"]

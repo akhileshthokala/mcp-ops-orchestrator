@@ -4,7 +4,7 @@ Orchestrator agent.
 Pulls together:
   - Three MCP tool servers spawned as subprocesses over stdio.
   - Claude as the planner, using the standard tool-use protocol.
-  - A human-in-the-loop gate that fires whenever the agent drafts an email.
+  - A human-in-the-loop gate that approves or rejects the drafted email.
   - Structured logging of every step to logs/run.jsonl.
 
 High-level flow:
@@ -13,14 +13,15 @@ High-level flow:
   3. While Claude wants to use tools:
         a. For each tool_use block, route to the right MCP server, call it.
         b. If the tool is draft_resolution_email, pause and ask the human y/n
-           before letting the result flow back to Claude.
+           before marking the draft approved for sending.
         c. Send all tool_results back to Claude in the next turn.
   4. When Claude's stop_reason is not "tool_use", we're done. Return the answer.
 
 Why all 3 MCP servers run as subprocesses (not in-process functions):
   This is the canonical MCP pattern. It matches how Claude Desktop, Claude Code,
-  and other real clients call MCP servers. It's also how Anthropic FDE teams
-  actually deploy these — so this code looks the part.
+  and other real clients call MCP servers. For a customer engineer portfolio,
+  the important pattern is tool isolation, auditability, and approval before
+  customer-visible action.
 """
 from __future__ import annotations
 
@@ -155,16 +156,17 @@ async def _call_tool_with_hitl(
         result=result_payload,
     )
 
-    # HITL gate fires on the email drafting tool.
+    # HITL gate fires on the customer-facing draft. A production version would
+    # call a separate send_email tool only after this approval.
     if tool_name == "draft_resolution_email" and "error" not in result_payload:
         approved, reason = _hitl_review(result_payload)
         log_event("hitl_decision", approved=approved, reason=reason)
         if approved:
             result_payload["_status"] = "approved_by_human"
-            result_payload["_action"] = "email_sent"
+            result_payload["_action"] = "ready_for_send_email_tool"
         else:
             result_payload["_status"] = "rejected_by_human"
-            result_payload["_action"] = "email_not_sent"
+            result_payload["_action"] = "send_email_tool_not_called"
             result_payload["_rejection_reason"] = reason or "no reason given"
 
     return result_payload
